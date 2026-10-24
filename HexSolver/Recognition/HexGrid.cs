@@ -130,7 +130,9 @@ namespace HexSolver
 
 			foreach (var hex in this)
 			{
-				if (hex.Value.Hint.IsError) throw new Exception("OCR failed for some cells");
+				if (hex.Value.Hint.IsError)
+					throw new Exception(String.Format("OCR failed at grid cell {0} (screen {1:0}, {2:0}); read '{3}'. Check OCR Distance.",
+						hex.Key, hex.Value.Image.OCRCenter.X, hex.Value.Image.OCRCenter.Y, hex.Value.Hint.AltDisplayValue ?? "unknown"));
 
 				switch (hex.Value.Hint.Area)
 				{

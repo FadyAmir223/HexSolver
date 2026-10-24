@@ -154,6 +154,7 @@ namespace HexSolver
 		{
 			Bitmap img = OCRImage.Clone(GetBoundingBox(), PixelFormat.Format32bppArgb);
 			double hexheight = OCRRadius * (Math.Sin(MathExt.ToRadians(60)) / Math.Sin(MathExt.ToRadians(90)));
+			double textInset = OCRRadius * 0.15;
 			activePixel = 0;
 
 			BitmapData srcData = img.LockBits(new Rectangle(0, 0, img.Width, img.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
@@ -173,6 +174,7 @@ namespace HexSolver
 						double px = Math.Abs(x - img.Width / 2);
 						double py = Math.Abs(y - img.Height / 2);
 						double pd = Math.Sqrt(px * px + py * py);
+						bool nearBorder = py >= hexheight - textInset || py + 2 * (px - OCRRadius + textInset) >= 0;
 
 						if (py < hexheight && py + 2 * (px - OCRRadius) < 0)
 						{
@@ -190,7 +192,7 @@ namespace HexSolver
 								case HexagonType.ACTIVE:
 									{
 										double s_value = ColorExt.GetSaturation(p[idx + 2], p[idx + 1], p[idx + 0]);
-										if (s_value >= 80 || pd > (OCRHeight - 1))
+										if (s_value >= 80 || pd > (OCRHeight - 1) || nearBorder)
 										{
 											// TRANSPARENT
 										}
@@ -210,7 +212,7 @@ namespace HexSolver
 									{
 										int grayness = (p[idx + 2] + p[idx + 1] + p[idx + 0]) / 3;
 
-										if (grayness < 128 || pd > (OCRHeight - 1))
+										if (grayness < 128 || pd > (OCRHeight - 1) || nearBorder)
 										{
 											// TRANSPARENT
 										}
@@ -437,7 +439,7 @@ namespace HexSolver
 				if (Regex.IsMatch(txt, @"^-[0-9]+$")) // special case (pOCR fail)
 					return new CellHint(CellHintType.NONCONSECUTIVE, col, int.Parse(txt.Substring(1, txt.Length - 1)), errDistance);
 
-				return new CellHint(CellHintType.NONE, CellHintArea.NONE, 0, 999999);
+				return new CellHint(CellHintType.NONE, CellHintArea.NONE, 0, 999999, txt);
 			}
 
 			throw new Exception("WTF - Type ==" + Type);
