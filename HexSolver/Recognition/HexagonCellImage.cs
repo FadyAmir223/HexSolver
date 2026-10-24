@@ -33,6 +33,7 @@ namespace HexSolver
 		public readonly PatternOCR PatternOCR;
 
 		private HexagonType? _Type = null;
+		private bool _DarkNoCell;
 		public HexagonType Type
 		{
 			get
@@ -90,7 +91,7 @@ namespace HexSolver
 			return result;
 		}
 
-		private Color GetAverageColor(Vec2d OCRCenter, double OCRRadius, Bitmap OCRImage, Rectangle BoundingBox)
+		private Color GetAverageColor(Vec2d OCRCenter, double OCRRadius, Bitmap OCRImage, Rectangle BoundingBox, out bool darkNoCell)
 		{
 			BitmapData srcData = OCRImage.LockBits(new Rectangle(0, 0, OCRImage.Width, OCRImage.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
 			IntPtr Scan0 = srcData.Scan0;
@@ -100,6 +101,11 @@ namespace HexSolver
 			int acG = 0;
 			int acB = 0;
 			double acS = 0;
+			int darkPixels = 0;
+			int lightPixels = 0;
+			int sampledPixels = 0;
+			int centerDarkPixels = 0;
+			int centerPixels = 0;
 
 			unsafe
 			{
@@ -120,19 +126,31 @@ namespace HexSolver
 							acG += p[idx + 1];
 							acR += p[idx + 2];
 							acS += 255;
+							sampledPixels++;
+							if (p[idx + 0] < 75 && p[idx + 1] < 75 && p[idx + 2] < 75) darkPixels++;
+							if (p[idx + 0] > 205 && p[idx + 1] > 205 && p[idx + 2] > 205) lightPixels++;
+							if (px < OCRRadius * 0.2 && py < OCRHeight * 0.2)
+							{
+								centerPixels++;
+								if (p[idx + 0] < 55 && p[idx + 1] < 55 && p[idx + 2] < 55) centerDarkPixels++;
+							}
 						}
 					}
 				}
 			}
 
 			OCRImage.UnlockBits(srcData);
+			// Empty gaps on dark boards have no white outline and are darker at the center than revealed cells.
+			darkNoCell = darkPixels * 5 > sampledPixels * 4 && lightPixels * 25 < sampledPixels && centerDarkPixels * 5 > centerPixels * 4;
 
 			return Color.FromArgb((int)(255 * acR / acS), (int)(255 * acG / acS), (int)(255 * acB / acS));
 		}
 
 		private HexagonType GetHexagonType()
 		{
-			Color avg = GetAverageColor(OCRCenter, OCRRadius, OCRImage, BoundingBox);
+			Color avg = GetAverageColor(OCRCenter, OCRRadius, OCRImage, BoundingBox, out _DarkNoCell);
+			if (_DarkNoCell)
+				return HexagonType.NOCELL;
 
 			double[] distance = COLOR_CELLS.Select(p => ColorExt.GetColorDistance(p.R, p.G, p.B, avg)).ToArray();
 
@@ -404,6 +422,9 @@ namespace HexSolver
 
 			if (Type == HexagonType.NOCELL)
 			{
+				if (_DarkNoCell)
+					return new CellHint();
+
 				int activePixel;
 				Bitmap img = GetProcessedImage(false, out activePixel);
 
