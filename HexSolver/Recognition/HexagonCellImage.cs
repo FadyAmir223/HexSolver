@@ -29,6 +29,7 @@ namespace HexSolver
 		public double OCRRadius { get; private set; }
 		public double OCRHeight { get; private set; }
 		public Bitmap OCRImage { get; private set; }
+		public Color AverageColor { get; private set; }
 		public Rectangle BoundingBox { get; private set; }
 		public readonly PatternOCR PatternOCR;
 
@@ -101,11 +102,8 @@ namespace HexSolver
 			int acG = 0;
 			int acB = 0;
 			double acS = 0;
-			int darkPixels = 0;
-			int lightPixels = 0;
+			int backgroundPixels = 0;
 			int sampledPixels = 0;
-			int centerDarkPixels = 0;
-			int centerPixels = 0;
 
 			unsafe
 			{
@@ -127,28 +125,22 @@ namespace HexSolver
 							acR += p[idx + 2];
 							acS += 255;
 							sampledPixels++;
-							if (p[idx + 0] < 75 && p[idx + 1] < 75 && p[idx + 2] < 75) darkPixels++;
-							if (p[idx + 0] > 205 && p[idx + 1] > 205 && p[idx + 2] > 205) lightPixels++;
-							if (px < OCRRadius * 0.2 && py < OCRHeight * 0.2)
-							{
-								centerPixels++;
-								if (p[idx + 0] < 55 && p[idx + 1] < 55 && p[idx + 2] < 55) centerDarkPixels++;
-							}
+							if (p[idx + 0] < 55 && p[idx + 1] < 55 && p[idx + 2] < 55) backgroundPixels++;
 						}
 					}
 				}
 			}
 
 			OCRImage.UnlockBits(srcData);
-			// Empty gaps on dark boards have no white outline and are darker at the center than revealed cells.
-			darkNoCell = darkPixels * 5 > sampledPixels * 4 && lightPixels * 25 < sampledPixels && centerDarkPixels * 5 > centerPixels * 4;
+			// The dark board background is darker than the interior of a revealed cell.
+			darkNoCell = backgroundPixels * 2 >= sampledPixels;
 
 			return Color.FromArgb((int)(255 * acR / acS), (int)(255 * acG / acS), (int)(255 * acB / acS));
 		}
 
 		private HexagonType GetHexagonType()
 		{
-			Color avg = GetAverageColor(OCRCenter, OCRRadius, OCRImage, BoundingBox, out _DarkNoCell);
+			Color avg = AverageColor = GetAverageColor(OCRCenter, OCRRadius, OCRImage, BoundingBox, out _DarkNoCell);
 			if (_DarkNoCell)
 				return HexagonType.NOCELL;
 
@@ -248,6 +240,19 @@ namespace HexSolver
 
 								case HexagonType.NOCELL:
 									{
+										if (_DarkNoCell)
+										{
+											int minChannel = Math.Min(p[idx + 0], Math.Min(p[idx + 1], p[idx + 2]));
+											int maxChannel = Math.Max(p[idx + 0], Math.Max(p[idx + 1], p[idx + 2]));
+											if (minChannel > 140 && maxChannel - minChannel < 30 && !nearBorder && px < OCRRadius * 0.6 && py < OCRHeight * 0.6)
+											{
+												activePixel++;
+												repl_R = repl_G = repl_B = (byte)(255 - (p[idx + 2] + p[idx + 1] + p[idx + 0]) / 3);
+												repl_A = 255;
+											}
+											break;
+										}
+
 										double c_distance = ColorExt.GetColorDistance(p[idx + 2], p[idx + 1], p[idx + 0], COLOR_CELL_NOCELL);
 										double hsv_value = ColorExt.GetValue(p[idx + 2], p[idx + 1], p[idx + 0]);
 										if (c_distance < 32 || hsv_value > 75)
@@ -422,9 +427,6 @@ namespace HexSolver
 
 			if (Type == HexagonType.NOCELL)
 			{
-				if (_DarkNoCell)
-					return new CellHint();
-
 				int activePixel;
 				Bitmap img = GetProcessedImage(false, out activePixel);
 
