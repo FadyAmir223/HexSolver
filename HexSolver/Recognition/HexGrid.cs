@@ -130,6 +130,10 @@ namespace HexSolver
 
 			foreach (var hex in this)
 			{
+				if (hex.Value.Type == HexagonType.UNKNOWN)
+					throw new Exception(String.Format("Cell color recognition failed at grid cell {0} (screen {1:0}, {2:0}). Check the screenshot and grid alignment.",
+						hex.Key, hex.Value.Image.OCRCenter.X, hex.Value.Image.OCRCenter.Y));
+
 				if (hex.Value.Hint.IsError)
 					throw new Exception(String.Format("OCR failed at grid cell {0} (screen {1:0}, {2:0}); read '{3}'. Check OCR Distance.",
 						hex.Key, hex.Value.Image.OCRCenter.X, hex.Value.Image.OCRCenter.Y, hex.Value.Hint.AltDisplayValue ?? "unknown"));
