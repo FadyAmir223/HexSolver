@@ -538,7 +538,7 @@ namespace SimplePatternOCR
 
 									bool valid = nx < img.Width - 1 && nx > 0 && ny > 0 && ny < img.Height - 1;
 
-									double treshold = (nx == 0) ? FCB_TRESHOLD_Y : FCB_TRESHOLD_X;
+									double treshold = (off.X == 0) ? FCB_TRESHOLD_Y : FCB_TRESHOLD_X;
 
 									if (valid && grid[nx, ny] == 0 && ((pget(nx, ny) - cme) < treshold || allPoints.Count == 1) && pget(nx, ny) > FCB_TRESHOLD_FLOOD)
 									{
