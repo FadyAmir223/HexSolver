@@ -244,7 +244,7 @@ namespace HexSolver
 										{
 											int minChannel = Math.Min(p[idx + 0], Math.Min(p[idx + 1], p[idx + 2]));
 											int maxChannel = Math.Max(p[idx + 0], Math.Max(p[idx + 1], p[idx + 2]));
-											if (minChannel > 140 && maxChannel - minChannel < 30 && !nearBorder && px < OCRRadius * 0.6 && py < OCRHeight * 0.6)
+											if (minChannel > 140 && maxChannel - minChannel < 30 && !nearBorder && px < OCRRadius * 0.6)
 											{
 												activePixel++;
 												repl_R = repl_G = repl_B = (byte)(255 - (p[idx + 2] + p[idx + 1] + p[idx + 0]) / 3);

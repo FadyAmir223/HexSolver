@@ -178,11 +178,11 @@ namespace HexSolver
 
 				foreach (var hex in grid)
 				{
-					if (hex.Value.Hint.IsError) throw new Exception("OCR failed for some cells");
-
 					var points = Enumerable.Range(0, 7).Select(p => hex.Value.GetEdge(p)).Select(p => new Point((int)p.X, (int)p.Y)).ToArray();
 
-					if (hex.Value.Type == HexagonType.NOCELL)
+					if (hex.Value.Hint.IsError)
+						g.FillPolygon(new SolidBrush(Color.Magenta), points);
+					else if (hex.Value.Type == HexagonType.NOCELL)
 						g.FillPolygon(new SolidBrush(Color.Gainsboro), points);
 					else
 						g.FillPolygon(new SolidBrush(Color.SlateGray), points);
